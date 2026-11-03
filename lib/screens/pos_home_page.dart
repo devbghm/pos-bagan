@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/pos_database.dart';
 import '../models/pos_models.dart';
+import '../screens/tables_teams_screen.dart';
 
 class PosHomePage extends StatefulWidget {
   const PosHomePage({super.key});
@@ -60,28 +61,41 @@ class _PosHomePageState extends State<PosHomePage> {
         content: Form(
           key: formKey,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            TextFormField(controller: name, decoration: const InputDecoration(labelText: 'Name'),
-                validator: (value) => value == null || value.trim().isEmpty ? 'Enter a name' : null),
+            TextFormField(
+              controller: name,
+              decoration: const InputDecoration(labelText: 'Name'),
+              validator: (value) => value == null || value.trim().isEmpty ? 'Enter a name' : null,
+            ),
             const SizedBox(height: 12),
             TextField(controller: category, decoration: const InputDecoration(labelText: 'Category (optional)')),
             const SizedBox(height: 12),
-            TextFormField(controller: price, keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Price ($_currency, whole units)'),
-                validator: (value) => int.tryParse(value ?? '') == null || int.parse(value!) < 0
-                    ? 'Enter a valid non-negative whole number' : null),
+            TextFormField(
+              controller: price,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(labelText: 'Price ($_currency, whole units)'),
+              validator: (value) {
+                final parsed = int.tryParse(value ?? '');
+                return parsed == null || parsed < 0 ? 'Enter a valid non-negative whole number' : null;
+              },
+            ),
           ]),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () {
-            if (formKey.currentState!.validate()) Navigator.pop(context, true);
-          }, child: const Text('Save')),
+          FilledButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) Navigator.pop(context, true);
+            },
+            child: const Text('Save'),
+          ),
         ],
       ),
     );
     if (saved == true) {
       await PosDatabase.instance.addProduct(Product(
-        name: name.text.trim(), category: category.text.trim(), price: int.parse(price.text),
+        name: name.text.trim(),
+        category: category.text.trim(),
+        price: int.parse(price.text),
       ));
       _reloadProducts();
     }
@@ -131,13 +145,23 @@ class _PosHomePageState extends State<PosHomePage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Recent sales (saved locally)'),
-        content: SizedBox(width: 360, child: sales.isEmpty
-            ? const Text('No sales yet.')
-            : ListView(shrinkWrap: true, children: sales.map((sale) => ListTile(
-                title: Text('Sale #${sale.id}'),
-                subtitle: Text(sale.createdAt.toLocal().toString()),
-                trailing: Text('${sale.total} $_currency'),
-              )).toList())),
+        content: SizedBox(
+          width: 360,
+          child: sales.isEmpty
+              ? const Text('No sales yet.')
+              : ListView(
+                  shrinkWrap: true,
+                  children: sales
+                      .map(
+                        (sale) => ListTile(
+                          title: Text('Sale #${sale.id}'),
+                          subtitle: Text(sale.createdAt.toLocal().toString()),
+                          trailing: Text('${sale.total} $_currency'),
+                        ),
+                      )
+                      .toList(),
+                ),
+        ),
         actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
       ),
     );
@@ -149,6 +173,16 @@ class _PosHomePageState extends State<PosHomePage> {
       appBar: AppBar(
         title: Text(_businessName),
         actions: [
+          IconButton(
+            tooltip: 'Tables & teams',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const TablesAndTeamsScreen()),
+              );
+            },
+            icon: const Icon(Icons.table_restaurant_outlined),
+          ),
           IconButton(tooltip: 'Sales history', onPressed: _showSales, icon: const Icon(Icons.receipt_long)),
           IconButton(tooltip: 'Settings', onPressed: _showSettings, icon: const Icon(Icons.settings)),
         ],
@@ -156,10 +190,16 @@ class _PosHomePageState extends State<PosHomePage> {
       body: FutureBuilder<List<Product>>(
         future: _productsFuture,
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-          if (snapshot.hasError) return Center(child: Text('Could not load products: ${snapshot.error}'));
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Could not load products: ${snapshot.error}'));
+          }
           final products = snapshot.data ?? [];
-          if (products.isEmpty) return const Center(child: Text('No products yet. Tap + to add a product or service.'));
+          if (products.isEmpty) {
+            return const Center(child: Text('No products yet. Tap + to add a product or service.'));
+          }
           return ListView.builder(
             padding: const EdgeInsets.only(bottom: 100),
             itemCount: products.length,
@@ -169,16 +209,27 @@ class _PosHomePageState extends State<PosHomePage> {
                 title: Text(product.name),
                 subtitle: Text(product.category.isEmpty ? 'Product or service' : product.category),
                 leading: const CircleAvatar(child: Icon(Icons.inventory_2_outlined)),
-                trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Text('${product.price} $_currency'),
-                  IconButton(tooltip: 'Add to cart', onPressed: () => _addToCart(product), icon: const Icon(Icons.add_shopping_cart)),
-                ]),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('${product.price} $_currency'),
+                    IconButton(
+                      tooltip: 'Add to cart',
+                      onPressed: () => _addToCart(product),
+                      icon: const Icon(Icons.add_shopping_cart),
+                    ),
+                  ],
+                ),
               );
             },
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(onPressed: _showProductForm, tooltip: 'Add product', child: const Icon(Icons.add)),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showProductForm,
+        tooltip: 'Add product',
+        child: const Icon(Icons.add),
+      ),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(12),
