@@ -40,3 +40,46 @@ class SaleSummary {
         createdAt: DateTime.parse(map['created_at'] as String),
       );
 }
+
+class PosTable {
+  const PosTable({this.id, required this.label, this.teamName = '', this.occupied = false});
+
+  final int? id;
+  final String label;
+  final String teamName;
+  final bool occupied;
+
+  Map<String, Object?> toMap() => {
+        if (id != null) 'id': id,
+        'label': label,
+        'team_name': teamName,
+        'occupied': occupied ? 1 : 0,
+      };
+
+  factory PosTable.fromMap(Map<String, Object?> map) => PosTable(
+        id: map['id'] as int,
+        label: map['label'] as String,
+        teamName: map['team_name'] as String? ?? '',
+        occupied: (map['occupied'] as int?) == 1,
+      );
+}
+
+class PosTeam {
+  const PosTeam({this.id, required this.name, required this.color});
+
+  final int? id;
+  final String name;
+  final String color;
+
+  Map<String, Object?> toMap() => {
+        if (id != null) 'id': id,
+        'name': name,
+        'color': color,
+      };
+
+  factory PosTeam.fromMap(Map<String, Object?> map) => PosTeam(
+        id: map['id'] as int,
+        name: map['name'] as String,
+        color: map['color'] as String? ?? '#8A4B18',
+      );
+}
